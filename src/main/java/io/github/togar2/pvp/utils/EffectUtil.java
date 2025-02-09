@@ -4,7 +4,7 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.effects.Effects;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.network.packet.server.play.EffectPacket;
-import net.minestom.server.utils.PacketUtils;
+import net.minestom.server.utils.PacketSendingUtils;
 import org.jetbrains.annotations.NotNull;
 
 public class EffectUtil {
@@ -13,7 +13,7 @@ public class EffectUtil {
 		EffectPacket packet = new EffectPacket(effect.getId(), new Pos(x, y, z), data, global);
 		
 		double distanceSquared = distance * distance;
-		PacketUtils.sendGroupedPacket(instance.getPlayers(), packet, player -> {
+		PacketSendingUtils.sendGroupedPacket(instance.getPlayers(), packet, player -> {
 			Pos position = player.getPosition();
 			double dx = x - position.x();
 			double dy = y - position.y();

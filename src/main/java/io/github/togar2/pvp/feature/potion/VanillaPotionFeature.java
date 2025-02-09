@@ -16,8 +16,9 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
+import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.event.EventNode;
-import net.minestom.server.event.item.ItemUsageCompleteEvent;
+import net.minestom.server.event.item.PlayerFinishItemUseEvent;
 import net.minestom.server.event.player.PlayerTickEvent;
 import net.minestom.server.event.player.PlayerUseItemEvent;
 import net.minestom.server.event.trait.EntityInstanceEvent;
@@ -68,7 +69,7 @@ public class VanillaPotionFeature implements PotionFeature, RegistrableFeature {
 			}
 		});
 		
-		node.addListener(ItemUsageCompleteEvent.class, event -> {
+		node.addListener(PlayerFinishItemUseEvent.class, event -> {
 			if (event.getItemStack().material() != Material.POTION) return;
 			
 			Player player = event.getPlayer();
@@ -132,7 +133,7 @@ public class VanillaPotionFeature implements PotionFeature, RegistrableFeature {
 		});
 	}
 	
-	protected void throwPotion(Player player, ItemStack stack, Player.Hand hand) {
+	protected void throwPotion(Player player, ItemStack stack, PlayerHand hand) {
 		ThrownPotion thrownPotion = new ThrownPotion(player, effectFeature);
 		thrownPotion.setItem(stack);
 		

@@ -8,6 +8,7 @@ import net.minestom.server.ServerFlag;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.collision.CollisionUtils;
 import net.minestom.server.coordinate.Point;
+import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityType;
@@ -22,6 +23,8 @@ import net.minestom.server.instance.ExplosionSupplier;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.network.packet.server.play.ExplosionPacket;
+import net.minestom.server.particle.Particle;
+import net.minestom.server.sound.SoundEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -173,7 +176,7 @@ public final class VanillaExplosionSupplier implements ExplosionSupplier {
 							
 							int tps = ServerFlag.SERVER_TICKS_PER_SECOND;
 							if (entity instanceof Player player) {
-								if (player.getGameMode().canTakeDamage() && !player.isFlying()) {
+								if (!player.getGameMode().invulnerable() && !player.isFlying()) {
 									playerKnockback.put(player, knockbackVec);
 									
 									if (player instanceof CombatPlayer custom)
@@ -193,7 +196,6 @@ public final class VanillaExplosionSupplier implements ExplosionSupplier {
 			public void apply(@NotNull Instance instance) {
 				List<Point> blocks = prepare(instance);
 				if (blocks == null) return; // Event was cancelled
-				byte[] records = new byte[3 * blocks.size()];
 				for (int i = 0; i < blocks.size(); i++) {
 					final var pos = blocks.get(i);
 					if (instance.getBlock(pos).compare(Block.TNT)) {
@@ -205,17 +207,15 @@ public final class VanillaExplosionSupplier implements ExplosionSupplier {
 					final byte x = (byte) (pos.x() - Math.floor(getCenterX()));
 					final byte y = (byte) (pos.y() - Math.floor(getCenterY()));
 					final byte z = (byte) (pos.z() - Math.floor(getCenterZ()));
-					records[i * 3] = x;
-					records[i * 3 + 1] = y;
-					records[i * 3 + 2] = z;
 				}
 				
 				Chunk chunk = instance.getChunkAt(getCenterX(), getCenterZ());
 				if (chunk != null) {
 					for (Player player : chunk.getViewers()) {
 						Vec knockbackVec = playerKnockback.getOrDefault(player, Vec.ZERO);
-						player.sendPacket(new ExplosionPacket(centerX, centerY, centerZ, strength,
-								records, (float) knockbackVec.x(), (float) knockbackVec.y(), (float) knockbackVec.z()));
+//						player.sendPacket(new ExplosionPacket(new Pos(centerX, centerY, centerZ), strength,
+//								records, (float) knockbackVec.x(), (float) knockbackVec.y(), (float) knockbackVec.z()));
+						player.sendPacket(new ExplosionPacket(new Pos(centerX, centerY, centerZ), knockbackVec, Particle.EXPLOSION, SoundEvent.ENTITY_GENERIC_EXPLODE));
 					}
 				}
 				playerKnockback.clear();

@@ -10,6 +10,7 @@ import net.minestom.server.entity.attribute.Attribute;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.entity.EntityVelocityEvent;
 import net.minestom.server.instance.Chunk;
+import net.minestom.server.network.player.GameProfile;
 import net.minestom.server.network.player.PlayerConnection;
 import net.minestom.server.potion.PotionEffect;
 import net.minestom.server.potion.TimedPotion;
@@ -24,13 +25,13 @@ public class CombatPlayerImpl extends Player implements CombatPlayer {
 	private boolean velocityUpdate = false;
 	private PhysicsResult previousPhysicsResult = null;
 	
-	public CombatPlayerImpl(@NotNull UUID uuid, @NotNull String username, @NotNull PlayerConnection playerConnection) {
-		super(uuid, username, playerConnection);
+	public CombatPlayerImpl(@NotNull PlayerConnection playerConnection, @NotNull GameProfile gameProfile) {
+		super(playerConnection, gameProfile);
 		
 		// Default value is 2.0, but base value is 1.0 for players in vanilla
 		// This is difficult to implement as a feature and assumed everyone using
 		// this extension would want it to match vanilla
-		getAttribute(Attribute.GENERIC_ATTACK_DAMAGE).setBaseValue(1.0);
+		getAttribute(Attribute.ATTACK_DAMAGE).setBaseValue(1.0);
 	}
 	
 	@Override

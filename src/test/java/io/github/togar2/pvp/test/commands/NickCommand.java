@@ -16,8 +16,11 @@ public class NickCommand extends Command {
 		addSyntax((sender, args) -> MinecraftServer.getSchedulerManager().buildTask(() -> {
 			String username = args.get(name);
 			Player player = sender.asPlayer();
-			
-			player.setUsernameField(username);
+
+
+			//TODO: Set player's username
+//			player.setUsernameField(username);
+
 			//Send packets
 			player.setSkin(player.getSkin());
 		}).schedule(), name);

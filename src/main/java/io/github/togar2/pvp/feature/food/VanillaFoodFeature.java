@@ -11,16 +11,20 @@ import io.github.togar2.pvp.utils.ViewUtil;
 import net.kyori.adventure.sound.Sound;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
+import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.event.EventNode;
-import net.minestom.server.event.item.ItemUsageCompleteEvent;
+import net.minestom.server.event.item.PlayerFinishItemUseEvent;
 import net.minestom.server.event.player.PlayerPreEatEvent;
 import net.minestom.server.event.player.PlayerTickEvent;
 import net.minestom.server.event.trait.EntityInstanceEvent;
 import net.minestom.server.item.ItemComponent;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
+import net.minestom.server.item.component.Consumable;
+import net.minestom.server.item.component.ConsumeEffect;
 import net.minestom.server.item.component.Food;
 import net.minestom.server.item.component.SuspiciousStewEffects;
+import net.minestom.server.potion.CustomPotionEffect;
 import net.minestom.server.potion.Potion;
 import net.minestom.server.potion.PotionEffect;
 import net.minestom.server.sound.SoundEvent;
@@ -62,9 +66,10 @@ public class VanillaFoodFeature implements FoodFeature, CombatFeature, Registrab
 					&& !event.getItemStack().has(ItemComponent.FOOD))
 				return;
 			
+			Consumable consumable = event.getItemStack().get(ItemComponent.CONSUMABLE);
 			Food foodComponent = event.getItemStack().get(ItemComponent.FOOD);
 			
-			if (foodComponent == null) {
+			if (foodComponent == null || consumable == null) {
 				event.setCancelled(true);
 				return;
 			}
@@ -78,13 +83,10 @@ public class VanillaFoodFeature implements FoodFeature, CombatFeature, Registrab
 				return;
 			}
 			
-			event.setEatingTime(getUseTime(event.getItemStack().material(), foodComponent));
+			event.setEatingTime(getUseTime(event.getItemStack().material(), consumable));
 		});
 		
-		node.addListener(ItemUsageCompleteEvent.class, event -> {
-			if (event.getItemStack().material() != Material.MILK_BUCKET
-					&& !event.getItemStack().has(ItemComponent.FOOD))
-				return;
+		node.addListener(PlayerFinishItemUseEvent.class, event -> {
 			
 			onFinishEating(event.getPlayer(), event.getItemStack(), event.getHand());
 		});
@@ -97,35 +99,53 @@ public class VanillaFoodFeature implements FoodFeature, CombatFeature, Registrab
 		});
 	}
 	
-	protected void onFinishEating(Player player, ItemStack stack, Player.Hand hand) {
+	protected void onFinishEating(Player player, ItemStack stack, PlayerHand hand) {
 		this.eat(player, stack);
 		
-		Food component = stack.get(ItemComponent.FOOD);
-		assert component != null;
+		@Nullable Food component = stack.get(ItemComponent.FOOD);
+
 		ThreadLocalRandom random = ThreadLocalRandom.current();
-		
-		triggerEatingSound(player, stack.material());
-		
-		if (stack.material() != Material.MILK_BUCKET) {
-			ViewUtil.viewersAndSelf(player).playSound(Sound.sound(
-					SoundEvent.ENTITY_PLAYER_BURP, Sound.Source.PLAYER,
-					0.5f, random.nextFloat() * 0.1f + 0.9f
-			), player);
+		if(component != null) {
+			triggerEatingSound(player, stack.material());
+
+			if (stack.material() != Material.MILK_BUCKET) {
+				ViewUtil.viewersAndSelf(player).playSound(Sound.sound(
+						SoundEvent.ENTITY_PLAYER_BURP, Sound.Source.PLAYER,
+						0.5f, random.nextFloat() * 0.1f + 0.9f
+				), player);
+
+				if (stack.has(ItemComponent.SUSPICIOUS_STEW_EFFECTS)) {
+					SuspiciousStewEffects effects = stack.get(ItemComponent.SUSPICIOUS_STEW_EFFECTS);
+					assert effects != null;
+					for (SuspiciousStewEffects.Effect effect : effects.effects()) {
+						player.addEffect(new Potion(effect.id(), (byte) 0, effect.durationTicks(), PotionFlags.defaultFlags()));
+					}
+				}
+			}
 		}
-		
-		List<Food.EffectChance> effectList = component.effects();
-		
-		for (Food.EffectChance effect : effectList) {
-			if (random.nextFloat() < effect.probability()) {
-				player.addEffect(new Potion(
-						effect.effect().id(), effect.effect().amplifier(),
-						effect.effect().duration(),
-						PotionFlags.create(
-								effect.effect().isAmbient(),
-								effect.effect().showParticles(),
-								effect.effect().showIcon()
-						)
-				));
+
+		Consumable consumable = stack.get(ItemComponent.CONSUMABLE);
+		if(consumable != null) {
+			for (ConsumeEffect effect : consumable.effects()) {
+				if(effect instanceof ConsumeEffect.ApplyEffects(List<CustomPotionEffect> effects, float probability)) {
+					if (random.nextFloat() < probability) {
+						for (CustomPotionEffect customPotionEffect : effects) {
+							player.addEffect(new Potion(
+									customPotionEffect.id(), customPotionEffect.amplifier(),
+									customPotionEffect.duration(),
+									PotionFlags.create(
+											customPotionEffect.isAmbient(),
+											customPotionEffect.showParticles(),
+											customPotionEffect.showIcon()
+									)
+							));
+						}
+					}
+				} else if(effect instanceof ConsumeEffect.RemoveEffects removeEffects) {
+					//TODO: Figure out what this even is
+				} else if(effect instanceof ConsumeEffect.ClearAllEffects) {
+					player.clearEffects();
+				}
 			}
 		}
 		
@@ -136,8 +156,8 @@ public class VanillaFoodFeature implements FoodFeature, CombatFeature, Registrab
 				player.addEffect(new Potion(effect.id(), (byte) 0, effect.durationTicks(), PotionFlags.defaultFlags()));
 			}
 		}
-		
-		ItemStack leftOver = component.usingConvertsTo();
+
+		ItemStack leftOver = ItemStack.AIR;
 		
 		onEat(player, stack);
 		if (leftOver.isAir()) leftOver = getUsingConvertsTo(stack);
@@ -175,21 +195,21 @@ public class VanillaFoodFeature implements FoodFeature, CombatFeature, Registrab
 	}
 	
 	@Override
-	public void applySaturationEffect(Player player, byte amplifier) {
+	public void applySaturationEffect(Player player, int amplifier) {
 		eat(player, amplifier + 1, 1.0f);
 	}
 	
 	protected void tickEatingSounds(Player player) {
 		ItemStack stack = player.getItemInHand(Objects.requireNonNull(player.getItemUseHand()));
 		
-		Food component = stack.get(ItemComponent.FOOD);
+		Consumable component = stack.get(ItemComponent.CONSUMABLE);
 		if (component == null) return;
 		
 		long useTime = getUseTime(stack.material(), component);
 		long usedTicks = player.getCurrentItemUseTime();
 		long remainingUseTicks = useTime - usedTicks;
 		
-		boolean canTrigger = component.eatDurationTicks() < 32 || remainingUseTicks <= useTime - 7;
+		boolean canTrigger = component.consumeTicks() < 32 || remainingUseTicks <= useTime - 7;
 		boolean shouldTrigger = canTrigger && remainingUseTicks % 4 == 0;
 		if (!shouldTrigger) return;
 		
@@ -239,8 +259,8 @@ public class VanillaFoodFeature implements FoodFeature, CombatFeature, Registrab
 		}
 	}
 	
-	protected int getUseTime(@NotNull Material material, @NotNull Food foodComponent) {
+	protected int getUseTime(@NotNull Material material, @NotNull Consumable foodComponent) {
 		if (material == Material.HONEY_BOTTLE) return 40;
-		return foodComponent.eatDurationTicks();
+		return foodComponent.consumeTicks();
 	}
 }

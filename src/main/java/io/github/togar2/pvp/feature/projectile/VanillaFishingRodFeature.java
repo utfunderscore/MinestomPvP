@@ -16,6 +16,7 @@ import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.EquipmentSlot;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
+import net.minestom.server.entity.PlayerHand;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.EventNode;
 import net.minestom.server.event.entity.EntityShootEvent;
@@ -70,7 +71,7 @@ public class VanillaFishingRodFeature implements FishingRodFeature, RegistrableF
 				EventDispatcher.callCancellable(retrieveEvent, () -> {
 					int durability = bobber.retrieve();
 					if (player.getGameMode() != GameMode.CREATIVE)
-						itemDamageFeature.damageEquipment(player, event.getHand() == Player.Hand.MAIN ?
+						itemDamageFeature.damageEquipment(player, event.getHand() == PlayerHand.MAIN ?
 								EquipmentSlot.MAIN_HAND : EquipmentSlot.OFF_HAND, durability);
 					
 					ViewUtil.viewersAndSelf(player).playSound(Sound.sound(

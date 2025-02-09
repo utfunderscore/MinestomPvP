@@ -14,20 +14,18 @@ import net.kyori.adventure.sound.Sound;
 import net.minestom.server.ServerFlag;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
-import net.minestom.server.entity.EquipmentSlot;
-import net.minestom.server.entity.GameMode;
-import net.minestom.server.entity.LivingEntity;
-import net.minestom.server.entity.Player;
+import net.minestom.server.entity.*;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.event.EventNode;
 import net.minestom.server.event.entity.EntityAttackEvent;
-import net.minestom.server.event.item.ItemUpdateStateEvent;
+import net.minestom.server.event.item.PlayerFinishItemUseEvent;
 import net.minestom.server.event.player.PlayerTickEvent;
 import net.minestom.server.event.trait.EntityInstanceEvent;
 import net.minestom.server.instance.EntityTracker;
 import net.minestom.server.item.ItemComponent;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
+import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
 import net.minestom.server.sound.SoundEvent;
 import net.minestom.server.tag.Tag;
@@ -63,18 +61,18 @@ public class VanillaTridentFeature implements TridentFeature, RegistrableFeature
 	
 	@Override
 	public void init(EventNode<EntityInstanceEvent> node) {
-		node.addListener(ItemUpdateStateEvent.class, event -> {
+		node.addListener(PlayerFinishItemUseEvent.class, event -> {
 			Player player = event.getPlayer();
 			ItemStack stack = event.getItemStack();
 			if (stack.material() != Material.TRIDENT) return;
 			
 			long ticks = player.getCurrentItemUseTime();
 			if (ticks < 10) return;
-			
-			int riptide = stack.get(ItemComponent.ENCHANTMENTS).level(Enchantment.RIPTIDE);
+
+			int riptide = stack.get(ItemComponent.ENCHANTMENTS, EnchantmentList.EMPTY).level(Enchantment.RIPTIDE);
 			if (riptide > 0 && !FluidUtil.isTouchingWater(player)) return;
 			
-			itemDamageFeature.damageEquipment(player, event.getHand() == Player.Hand.MAIN ?
+			itemDamageFeature.damageEquipment(player, event.getHand() == PlayerHand.MAIN ?
 					EquipmentSlot.MAIN_HAND : EquipmentSlot.OFF_HAND, 1);
 			
 			if (riptide > 0) {
