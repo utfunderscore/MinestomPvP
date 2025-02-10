@@ -12,6 +12,7 @@ import net.minestom.server.event.trait.EntityInstanceEvent;
 import net.minestom.server.item.Material;
 import net.minestom.server.network.packet.server.play.SetCooldownPacket;
 import net.minestom.server.tag.Tag;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -43,7 +44,7 @@ public class VanillaItemCooldownFeature implements ItemCooldownFeature, Registra
 		node.addListener(PlayerTickEvent.class, event -> {
 			Player player = event.getPlayer();
 			Map<Material, Long> cooldown = player.getTag(COOLDOWN_END);
-			if (cooldown.isEmpty()) return;
+			if (cooldown == null || cooldown.isEmpty()) return;
 			long time = System.currentTimeMillis();
 			
 			Iterator<Map.Entry<Material, Long>> iterator = cooldown.entrySet().iterator();
@@ -66,12 +67,14 @@ public class VanillaItemCooldownFeature implements ItemCooldownFeature, Registra
 	@Override
 	public boolean hasCooldown(Player player, Material material) {
 		Map<Material, Long> cooldown = player.getTag(COOLDOWN_END);
+		if(cooldown == null) return false;
 		return cooldown.containsKey(material) && cooldown.get(material) > System.currentTimeMillis();
 	}
 	
 	@Override
 	public void setCooldown(Player player, Material material, int ticks) {
-		Map<Material, Long> cooldown = player.getTag(COOLDOWN_END);
+		@Nullable Map<Material, Long> cooldown = player.getTag(COOLDOWN_END);
+		if(cooldown == null) return;
 		cooldown.put(material, System.currentTimeMillis() + (long) ticks * MinecraftServer.TICK_MS);
 		sendCooldownPacket(player, material, ticks);
 	}
