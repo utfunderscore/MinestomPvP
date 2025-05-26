@@ -32,6 +32,7 @@ import net.minestom.server.event.trait.EntityInstanceEvent;
 import net.minestom.server.network.packet.server.play.DamageEventPacket;
 import net.minestom.server.network.packet.server.play.SoundEffectPacket;
 import net.minestom.server.potion.PotionEffect;
+import net.minestom.server.registry.Registry;
 import net.minestom.server.sound.SoundEvent;
 import net.minestom.server.tag.Tag;
 
@@ -227,17 +228,21 @@ public class VanillaDamageFeature implements DamageFeature, RegistrableFeature {
 		} else if (hurtSoundAndAnimation) {
 			// Workaround to have different types make a different sound,
 			// but only if the sound has not been changed by damage#getSound
-			if (entity instanceof Player && sound == SoundEvent.ENTITY_PLAYER_HURT) {
-				String effects = Objects.requireNonNull(damageType.registry()).effects();
-				if (effects != null) sound = switch (effects) {
-					case "thorns" -> SoundEvent.ENCHANT_THORNS_HIT;
-					case "drowning" -> SoundEvent.ENTITY_PLAYER_HURT_DROWN;
-					case "burning" -> SoundEvent.ENTITY_PLAYER_HURT_ON_FIRE;
-					case "poking" -> SoundEvent.ENTITY_PLAYER_HURT_SWEET_BERRY_BUSH;
-					case "freezing" -> SoundEvent.ENTITY_PLAYER_HURT_FREEZE;
-					default -> sound;
-				};
-			}
+//			if (entity instanceof Player && sound == SoundEvent.ENTITY_PLAYER_HURT) {
+//
+//
+//
+//				//TODO: Switch to new registry system
+//				String effects = Objects.requireNonNull((damageType.registry()).effects();
+//				if (effects != null) sound = switch (effects) {
+//					case "thorns" -> SoundEvent.ENCHANT_THORNS_HIT;
+//					case "drowning" -> SoundEvent.ENTITY_PLAYER_HURT_DROWN;
+//					case "burning" -> SoundEvent.ENTITY_PLAYER_HURT_ON_FIRE;
+//					case "poking" -> SoundEvent.ENTITY_PLAYER_HURT_SWEET_BERRY_BUSH;
+//					case "freezing" -> SoundEvent.ENTITY_PLAYER_HURT_FREEZE;
+//					default -> sound;
+//				};
+//			}
 		}
 		
 		if (hurtSoundAndAnimation) {
